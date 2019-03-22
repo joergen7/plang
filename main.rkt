@@ -32,13 +32,18 @@
          (rename-out [_#%datum #%datum])
 
          define-values
+         let-values
+         make-pipe
          spawn
          !
-         (rename-out [_define    define]
+         ?
+         recv
+         (rename-out [_car       car]
+                     [_cdr       cdr]
+                     [_define    define]
                      [_displayln displayln]
                      [_lambda    lambda]
                      [_lambda    λ]
-                     [_make-pipe make-pipe]
                      [_read      read]
                      [_values    values]
                      [_write     write]))
@@ -64,6 +69,7 @@
 
          (only-in racket/place
                   place
+                  place-channel
                   place-channel-get
                   place-channel-put)
 
@@ -119,14 +125,8 @@
 ;; Pipes
 ;;=============================================================================
 
-(define _make-pipe
-  (serial-lambda () (make-pipe)))
-
-(define _read
-  (serial-lambda (in) (deserialize (read in))))
-
-(define _write
-  (serial-lambda (x out) (write (serialize x) out)))
+(define (_read in) (deserialize (read in)))
+(define (_write x out) (write (serialize x) out))
 
 ;;=============================================================================
 ;; Places
@@ -134,21 +134,27 @@
 
 (define-syntax (spawn stx)
   (syntax-parse stx
-    [(_ f) #'(let ([p (place c (define f (deserialize (place-channel-get c))) (f))]) (place-channel-put p (serialize f)) p)]))
+    [(_ f) #'(let ([p (place c (define f (deserialize (place-channel-get c))) (f c))]) (place-channel-put p (serialize f)) p)]))
 ; [(_ m f a) #'()]))
 
 (define-syntax (! stx)
   (syntax-parse stx
-    [(_ p m) #'(place-channel-put p (serialize m))]))
+    [(_ p v) #'(let-values ([(a b) (place-channel)]) (place-channel-put p (cons (serialize v) b)) a)]))
 
+(define-syntax (? stx)
+  (syntax-parse stx
+    [(_ p) #'(let ([x (place-channel-get p)]) (values (deserialize (car x)) (cdr x)))]))
 
+(define-syntax (recv stx)
+  (syntax-parse stx
+    [(_ p (m:id q:id) e ...) #'(let-values ([(m q) (? p)]) e ...)]))
 
 ;;=============================================================================
 ;; Racket
 ;;=============================================================================
 
-(define _values
-  (serial-lambda l (apply values l)))
+(define _car (serial-lambda (l) (car l)))
+(define _cdr (serial-lambda (l) (cdr l)))
+(define _values (serial-lambda l (apply values l)))
+(define _displayln (serial-lambda (s) (displayln s)))
 
-(define _displayln
-  (serial-lambda (s) (displayln s)))
