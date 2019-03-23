@@ -1,10 +1,17 @@
 #lang plang
 
-(define (f1 _a) (displayln "hello world"))
-(define p1 (spawn f1))
+;; in the interactive, call
+;; (spawn-my-place f)
+;;
+;; this example should work but does not
+;; dynamic-require: name is not provided
 
+(define (spawn-my-place f)
+  (define p2 (spawn f))
+  (! p2 "hello world")
+  (place-wait p2))
 
-(define (f2 self) (recv self (m _b) (displayln m)))
-(define p2 (spawn f2))
-(! p2 "hello world")
+(define (f self)
+  (recv self (m _b) (displayln m)))
+
 

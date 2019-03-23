@@ -38,6 +38,9 @@
          !
          ?
          recv
+         place-wait
+         module+
+         format
          (rename-out [_car       car]
                      [_cdr       cdr]
                      [_define    define]
@@ -69,6 +72,7 @@
 
          (only-in racket/place
                   place
+                  place-wait
                   place-channel
                   place-channel-get
                   place-channel-put)
@@ -134,7 +138,8 @@
 
 (define-syntax (spawn stx)
   (syntax-parse stx
-    [(_ f) #'(let ([p (place c (define f (deserialize (place-channel-get c))) (f c))]) (place-channel-put p (serialize f)) p)]))
+    [(_ f) #'(let ([p (place c (define f (deserialize (place-channel-get c))) (f c))])
+               (place-channel-put p (serialize f)) p)]))
 ; [(_ m f a) #'()]))
 
 (define-syntax (! stx)
